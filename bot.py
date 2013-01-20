@@ -17,7 +17,7 @@ class IRCBot(bot.SimpleBot):
 		return filenames
 
 	def load_modules(self):
-		filenames = enumerate_modules()
+		filenames = self.enumerate_modules()
 
 		modules = []
 		for filename in filenames:
