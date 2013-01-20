@@ -35,8 +35,8 @@ class IRCBot(bot.SimpleBot):
 							self.register_listener(name, path())
 							self[name].add_handler(path)
 							print('Sucessfully loaded ' + name + '...')
-						except:
-							print('Failed to load ' + name + '...')
+						except Exception, e:
+							print('Failed to load {0}: {1}'.format(name, e))
 				except Exception, e:
 					print('Error getting module classes: {0}'.format(e))
 

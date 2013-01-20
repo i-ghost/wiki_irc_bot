@@ -1,24 +1,48 @@
 # -*- coding: utf-8 -*-
 
-import re
+import re, urllib
 from ircutils import client, events
 
 class LinkExpander(events.EventListener):
 
+	def __init__(self):
+		events.EventListener.__init__(self)
+		self.linkRE = re.compile(r'\[\[([^][|]+)(?:\|([^][|]+))?\]\]')
+		self.templateRE = re.compile(r'\{\{([^|{}]+?)[|}]')
+
+	def fix_url(self, url):
+		return url.replace(r'%3A', ':').replace(r'%20', '_').replace(r'%2F', '/',)
+
 	def expand_links(self, line):
 		if line.startswith('`'):
 			return None
-		templateRE = re.compile(r'\{\{([^\}]+?)\}\}')
-		simplelinkRE = re.compile(r'\[\[([^\]\|]+?)\]\]')
-		complexlinkRE = re.compile(r'\[\[([^\]\|]+?)\|([^\]\|]+?)\]\]')
 
-		templatelinks = ['Template:' + link + ' : ' + 'http://wiki.tf/Template:' + link.replace(' ', '_') for link in templateRE.findall(line)]
-		simplelinks = [link + ' : ' + 'http://wiki.tf/' + link.replace(' ', '_') for link in simplelinkRE.findall(line)]
-		complexlinks = [link[1] + ' : ' + 'http://wiki.tf/' + link[0].replace(' ', '_') for link in complexlinkRE.findall(line)]
-		links = templatelinks + simplelinks + complexlinks
+		links = []
+		uniques = []
+
+		for link in self.linkRE.findall(line):
+			target = link[0]
+			label = link[1]
+			prettylink = self.fix_url(urllib.quote('http://wiki.tf/' + target.title()))
+			if target.lower() in uniques:
+				continue
+			if label == r'':
+				links.append((target.replace('_', ' ')).title() + ': ' + prettylink)
+			else:
+				links.append((label.replace('_', ' ')).title() + ': ' + prettylink)
+			uniques.append(target.lower())
+
+		for link in self.templateRE.findall(line):
+			if link.startswith('Template:'):
+				link = link.replace('Template:', '', 1)
+			prettylink = self.fix_url(urllib.quote('http://wiki.tf/Template:' + link.title()))
+			if 'template:' + link.lower() in uniques:
+				continue
+			links.append(('Template:' + link.replace('_', ' ')).title() + ': ' + prettylink)
+			uniques.append('template:' + link.lower())
 
 		if len(links) > 0:
-			return ' , '.join(links)
+			return ' | '.join(links)
 		else:
 			return None
 
