@@ -14,7 +14,7 @@ class LinkExpander(events.EventListener):
 		return url.replace(r'%3A', ':').replace(r'%20', '_').replace(r'%2F', '/',)
 
 	def expand_links(self, line):
-		if line.startswith('`'):
+		if line.startswith('`') or line.startswith('!'):
 			return None
 
 		links = []
@@ -23,7 +23,7 @@ class LinkExpander(events.EventListener):
 		for link in self.linkRE.findall(line):
 			target = link[0]
 			label = link[1]
-			prettylink = self.fix_url(urllib.quote('http://wiki.tf/' + target.title()))
+			prettylink = 'http://wiki.tf/' + self.fix_url(urllib.quote(target.title()))
 			if target.lower() in uniques:
 				continue
 			if label == r'':
@@ -35,7 +35,7 @@ class LinkExpander(events.EventListener):
 		for link in self.templateRE.findall(line):
 			if link.startswith('Template:'):
 				link = link.replace('Template:', '', 1)
-			prettylink = self.fix_url(urllib.quote('http://wiki.tf/Template:' + link.title()))
+			prettylink = 'http://wiki.tf/Template:' + self.fix_url(urllib.quote(link.title()))
 			if 'template:' + link.lower() in uniques:
 				continue
 			links.append(('Template:' + link.replace('_', ' ')).title() + ': ' + prettylink)
@@ -48,9 +48,9 @@ class LinkExpander(events.EventListener):
 
 	def notify(self, client, event):
 		if event.command == 'PRIVMSG':
-			res = self.expand_links(event.message)
-			if res:
+			response = self.expand_links(event.message)
+			if response:
 				if event.target.startswith('#'):
-					client.send_message(event.target, res)
+					client.send_message(event.target, response)
 				else:
-					client.send_message(event.source, res)
+					client.send_message(event.source, response)
